@@ -1,0 +1,67 @@
+﻿@model List<string>
+@using System
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stock Chart</title>
+</head>
+<body>
+    <h1>Stock Chart</h1>
+
+    <div>
+        <label for="ticker">Select Stock Ticker:</label>
+        <select id="ticker" name="ticker" onchange="getChartData()">
+            @foreach (var ticker in Model)
+            {
+                <option value="@ticker">@ticker</option>
+            }
+        </select>
+    </div>
+
+    <div>
+        <canvas style="background-color: black" id="stockChart" width="800" height="400"></canvas>
+    </div>
+
+    <script>function getChartData() {
+            var ticker = document.getElementById('ticker').value;
+            // Call your controller method to get chart data for the selected ticker
+            fetch(`/Stock/GetChartData?ticker=${ticker}`)
+                .then(response => response.json())
+                .then(data => {
+                    renderChart(data);
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        function renderChart(data) {
+            var ctx = document.getElementById('stockChart').getContext('2d');
+            var chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Stock Prices',
+                        data: data.prices,
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        yAxes: [{
+                            ticks: {
+                                beginAtZero: true
+                            }
+                        }]
+                    }
+                }
+            });
+        }</script>
+</body>
+</html>
+
