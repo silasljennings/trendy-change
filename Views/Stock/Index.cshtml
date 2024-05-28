@@ -1,35 +1,53 @@
-﻿@model List<string>
+﻿@model StockViewModel
 @using System
-
-
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="../../wwwroot/js/Charting.js"></script>
     <title>Stock Chart</title>
 </head>
 <body>
-    <h1>Stock Chart</h1>
-
+    <h1 id="page-title">Stock Chart</h1>
     <div>
-        <label for="ticker">Select Stock Ticker:</label>
-        <select id="ticker" name="ticker" onchange="getChartData()">
-            @foreach (var ticker in Model)
-            {
-                <option value="@ticker">@ticker</option>
-            }
-        </select>
+        <span>
+            <div>
+                <label for="ticker">Select Stock Ticker:</label>
+                <select id="ticker" name="ticker" onchange="getChartData()">
+                    @foreach (var ticker in Model.Tickers)
+                    {
+                        <option value="@ticker">@ticker</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label for="interval">Select Time Interval:</label>
+                <select id="interval" name="interval" onchange="getChartData()">
+                    @foreach (var interval in Model.Intervals)
+                    {
+                        <option value="@interval">@interval</option>
+                    }
+                </select>
+            </div>
+        </span>
     </div>
-
-    <div>
-        <canvas style="background-color: black" id="stockChart" width="800" height="400"></canvas>
+    <div id="dashboard_div" style="width: 100%; height: 800px;">
+        <div id="candlestick_chart_div" style="width: 100%; height: 600px;"></div>
+        <div id="volume_chart_div" style="width: 100%; height: 100px;"></div>
+        <div id="filter_slider_div" style="width: 100%; height: 100px;"></div>
     </div>
+    <script>
+        google.charts.load('current', { packages: ['corechart', 'controls'] });
+        google.charts.setOnLoadCallback(getChartData);
 
-    <script>function getChartData() {
+        function getChartData() {
+
             var ticker = document.getElementById('ticker').value;
+            var interval = document.getElementById('interval').value;
+
             // Call your controller method to get chart data for the selected ticker
-            fetch(`/Stock/GetChartData?ticker=${ticker}`)
+            fetch(`/Stock/GetChartData?ticker=${ticker}&interval=${interval}`)
                 .then(response => response.json())
                 .then(data => {
                     renderChart(data);
@@ -38,30 +56,36 @@
         }
 
         function renderChart(data) {
-            var ctx = document.getElementById('stockChart').getContext('2d');
-            var chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: data.labels,
-                    datasets: [{
-                        label: 'Stock Prices',
-                        data: data.prices,
-                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        yAxes: [{
-                            ticks: {
-                                beginAtZero: true
-                            }
-                        }]
-                    }
-                }
-            });
+            var meta = data.meta;
+            var symbol = meta.symbol
+            var interval = document.getElementById('interval').value;
+            document.getElementById('page-title').innerText = symbol;
+
+            // create the candlestick chart
+            var candlestickData = getCandlestickData(data.ohlcv);
+            var candlestickDataTable = getDataToDataTable(candlestickData);
+            var candlestickChart = createCandlestickChart('candlestick_chart_div');
+
+            // create volume chart
+            var volumeData = getVolumeData(data.ohlcv);
+            var volumeDataTable = getDataToDataTable(volumeData);
+            var volumeChart = createVolumeChart('volume_chart_div')
+
+            // create filter slider control and add event listener
+            var startDate = candlestickData[candlestickData.length - 51][0];
+            var endDate = candlestickData[candlestickData.length - 1][0];
+            var filterSlider = createFilterSlider('filter_slider_div', startDate, endDate, 0);
+            setFilterSliderState(filterSlider, startDate, endDate)
+            addFilterSliderEventListener(filterSlider, candlestickChart, candlestickData);
+
+            // set chart range and title
+            setChartYRange(candlestickData, candlestickChart, startDate, endDate);
+            setChartTitle(candlestickChart, formatChartDate(startDate) + ' - ' + formatChartDate(endDate));
+
+            // set dashboard element and bind charting and controls
+            var dashboard = createDashboard('dashboard_div')
+            dashboard.bind(filterSlider, [candlestickChart, volumeChart]);
+            dashboard.draw(candlestickDataTable);
         }</script>
 </body>
 </html>
-

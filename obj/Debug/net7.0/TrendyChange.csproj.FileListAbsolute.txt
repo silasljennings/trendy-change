@@ -40,3 +40,6 @@
 /Users/si5754/Projects/TrendyChange/TrendyChange/obj/Debug/net7.0/TrendyChange.pdb
 /Users/si5754/Projects/TrendyChange/TrendyChange/obj/Debug/net7.0/TrendyChange.genruntimeconfig.cache
 /Users/si5754/Projects/TrendyChange/TrendyChange/obj/Debug/net7.0/ref/TrendyChange.dll
+/Users/silasljennings/Documents/projects/trendy-change/obj/Debug/net7.0/TrendyChange.dll
+/Users/silasljennings/Documents/projects/trendy-change/obj/Debug/net7.0/refint/TrendyChange.dll
+/Users/silasljennings/Documents/projects/trendy-change/obj/Debug/net7.0/TrendyChange.pdb

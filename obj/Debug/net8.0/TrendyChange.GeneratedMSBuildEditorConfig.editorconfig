@@ -9,63 +9,63 @@ build_property.EnforceExtendedAnalyzerRules =
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = TrendyChange
 build_property.RootNamespace = TrendyChange
-build_property.ProjectDir = /Users/si5754/Projects/TrendyChange/TrendyChange/
+build_property.ProjectDir = /Users/silasljennings/Documents/projects/trendy-change/
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.RazorLangVersion = 8.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
-build_property.MSBuildProjectDirectory = /Users/si5754/Projects/TrendyChange/TrendyChange
+build_property.MSBuildProjectDirectory = /Users/silasljennings/Documents/projects/trendy-change
 build_property._RazorSourceGeneratorDebug = 
 
-[/Users/si5754/Projects/TrendyChange/TrendyChange/Views/Home/Index.cshtml]
+[/Users/silasljennings/Documents/projects/trendy-change/Views/Home/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3MvSG9tZS9JbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[/Users/si5754/Projects/TrendyChange/TrendyChange/Views/Home/Privacy.cshtml]
+[/Users/silasljennings/Documents/projects/trendy-change/Views/Home/Privacy.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3MvSG9tZS9Qcml2YWN5LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[/Users/si5754/Projects/TrendyChange/TrendyChange/Views/Shared/Error.cshtml]
+[/Users/silasljennings/Documents/projects/trendy-change/Views/Shared/Error.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3MvU2hhcmVkL0Vycm9yLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[/Users/si5754/Projects/TrendyChange/TrendyChange/Views/Shared/_ValidationScriptsPartial.cshtml]
+[/Users/silasljennings/Documents/projects/trendy-change/Views/Shared/_ValidationScriptsPartial.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3MvU2hhcmVkL19WYWxpZGF0aW9uU2NyaXB0c1BhcnRpYWwuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[/Users/si5754/Projects/TrendyChange/TrendyChange/Views/Stock/Index.cshtml]
+[/Users/silasljennings/Documents/projects/trendy-change/Views/Stock/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3MvU3RvY2svSW5kZXguY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[/Users/si5754/Projects/TrendyChange/TrendyChange/Views/User/Create.cshtml]
+[/Users/silasljennings/Documents/projects/trendy-change/Views/User/Create.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVXNlci9DcmVhdGUuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[/Users/si5754/Projects/TrendyChange/TrendyChange/Views/User/Delete.cshtml]
+[/Users/silasljennings/Documents/projects/trendy-change/Views/User/Delete.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVXNlci9EZWxldGUuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[/Users/si5754/Projects/TrendyChange/TrendyChange/Views/User/Details.cshtml]
+[/Users/silasljennings/Documents/projects/trendy-change/Views/User/Details.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVXNlci9EZXRhaWxzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[/Users/si5754/Projects/TrendyChange/TrendyChange/Views/User/Edit.cshtml]
+[/Users/silasljennings/Documents/projects/trendy-change/Views/User/Edit.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVXNlci9FZGl0LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[/Users/si5754/Projects/TrendyChange/TrendyChange/Views/User/Index.cshtml]
+[/Users/silasljennings/Documents/projects/trendy-change/Views/User/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3MvVXNlci9JbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[/Users/si5754/Projects/TrendyChange/TrendyChange/Views/_ViewImports.cshtml]
+[/Users/silasljennings/Documents/projects/trendy-change/Views/_ViewImports.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3MvX1ZpZXdJbXBvcnRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[/Users/si5754/Projects/TrendyChange/TrendyChange/Views/_ViewStart.cshtml]
+[/Users/silasljennings/Documents/projects/trendy-change/Views/_ViewStart.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3MvX1ZpZXdTdGFydC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[/Users/si5754/Projects/TrendyChange/TrendyChange/Views/Shared/_Layout.cshtml]
+[/Users/silasljennings/Documents/projects/trendy-change/Views/Shared/_Layout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3MvU2hhcmVkL19MYXlvdXQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = b-234hf6448o

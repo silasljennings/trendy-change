@@ -40,8 +40,9 @@ namespace TrendyChange
             services.AddDbContext<ApiContext>(options =>
                 options.UseMySql($"server={host};userid=root;pwd={password};port={port};database=trendy-change",
                 new MySqlServerVersion("8.0.34")));
-
+            services.AddWebOptimizer();
             services.AddControllersWithViews();
+            services.AddHttpClient();
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo
@@ -76,6 +77,7 @@ namespace TrendyChange
             {
                 app.UseExceptionHandler("/Home/Error");
             }
+            app.UseWebOptimizer();
             app.UseStaticFiles();
 
             context.Database.Migrate();
@@ -84,7 +86,6 @@ namespace TrendyChange
             app.UseAuthorization();
             app.UseEndpoints(endpoints =>
             {
-
                 Routes.Routes.ConfigureRoutes(endpoints);
             });
 
