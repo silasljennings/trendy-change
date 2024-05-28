@@ -436,3 +436,17 @@ mono_crash.*
 # User-specific files (Rider)
 .idea/
 *.sln.im
+
+obj/**/*.cache
+obj/**/*.pdb
+obj/**/*.sourcelink.json
+
+# Ignore compiled DLL files
+obj/**/*.dll
+
+# Ignore ref and refint directories
+obj/**/*.ref/
+obj/**/*.refint/
+
+# Ignore static web assets development JSON
+obj/**/*.staticwebassets.development.json
