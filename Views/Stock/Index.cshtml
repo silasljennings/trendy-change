@@ -5,11 +5,11 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="../../wwwroot/js/Charting.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
     <title>Stock Chart</title>
 </head>
 <body>
-    <h1 id="page-title">Stock Chart</h1>
+    <h1 id="page_title">Stock Chart</h1>
     <div>
         <span>
             <div>
@@ -30,6 +30,13 @@
                     }
                 </select>
             </div>
+            <div>
+                <button type="button" class="btn btn-primary" id="openIndicatorPopup">Add Indicator</button>
+            </div>
+
+            <div id="indicatorPopup" class="modal fade" tabindex="-1" role="dialog">
+                @await Html.PartialAsync("IndicatorPopup")
+            </div>
         </span>
     </div>
     <div id="dashboard_div" style="width: 100%; height: 800px;">
@@ -40,11 +47,25 @@
     <script>
         google.charts.load('current', { packages: ['corechart', 'controls'] });
         google.charts.setOnLoadCallback(getChartData);
+        var ticker;
+        var interval;
+        var dashboard;
+        var candlestickChart;
+        var candlestickData;
+        var ohlcv;
+        var candlestickDataTable;
+        var volumeChart;
+        var volumeData;
+        var volumeDataTable;
+        var filterSlider;
+        var isTickerOrIntervalChanged;
 
         function getChartData() {
 
-            var ticker = document.getElementById('ticker').value;
-            var interval = document.getElementById('interval').value;
+            isTickerOrIntervalChanged = true;
+            ticker = document.getElementById('ticker').value;
+            interval = document.getElementById('interval').value;
+            document.getElementById('page_title').innerText = ticker;
 
             // Call your controller method to get chart data for the selected ticker
             fetch(`/Stock/GetChartData?ticker=${ticker}&interval=${interval}`)
@@ -55,37 +76,102 @@
                 .catch(error => console.error('Error fetching data:', error));
         }
 
-        function renderChart(data) {
-            var meta = data.meta;
-            var symbol = meta.symbol
-            var interval = document.getElementById('interval').value;
-            document.getElementById('page-title').innerText = symbol;
+        function renderChart(data) {         
+            ohlcv = data.ohlcv;
+            redrawDashboard(ohlcv);
+        }
 
-            // create the candlestick chart
-            var candlestickData = getCandlestickData(data.ohlcv);
-            var candlestickDataTable = getDataToDataTable(candlestickData);
-            var candlestickChart = createCandlestickChart('candlestick_chart_div');
+        $(document).ready(function () {
+            // Fetch all indicators available for dropdown selection
+            $.getJSON('/Stock/GetAllIndicatorTypes', function (indicatorTypes) {
+                indicatorTypes.forEach(indicator => {
+                    $('#indicatorType').append($('<option>', {
+                        value: indicator,
+                        text: indicator
+                    }));
+                });
+            });
 
-            // create volume chart
-            var volumeData = getVolumeData(data.ohlcv);
-            var volumeDataTable = getDataToDataTable(volumeData);
-            var volumeChart = createVolumeChart('volume_chart_div')
+            $('#openIndicatorPopup').click(function () {
+                $('#indicatorPopup').modal('show');
+            });
 
-            // create filter slider control and add event listener
+            $('#indicatorType').change(function () {
+                var selectedIndicator = $(this).val();
+                var parameterFields = $('#parameterFields');
+                parameterFields.empty();
+
+                // Fetch parameter fields for the selected indicator
+                $.getJSON(`/Stock/GetIndicatorFieldParams?indicatorType=${selectedIndicator}`, function (fields) {
+                    fields.forEach(field => {
+                        parameterFields.append(field);
+                    });
+                });
+
+            });
+
+            $('#applySettings').click(function () {
+                var params = buildParams(
+                    $('#indicatorType').val(),
+                    $('#unit').val(),
+                    $('#deviation').val(),
+                    $('#atrMultiplier').val(),
+                );
+                candlestickData = applyIndicator(candlestickData, params.indicator, params);
+                redrawDashboard(ohlcv);
+                $('#indicatorPopup').modal('hide');
+            });
+
+            $('#closePopup').click(function () {
+                $('#indicatorPopup').modal('hide');
+            });
+        });
+
+        function redrawDashboard(ohlcv) {
+
+            clearDashboard();
+
+            candlestickData = (candlestickData && !isTickerOrIntervalChanged) ? candlestickData : getCandlestickData(ohlcv);
+            candlestickDataTable = getDataToDataTable(candlestickData);
+            candlestickChart = createCandlestickChart("candlestick_chart_div", candlestickData);
+
+            volumeData = (volumeData && !isTickerOrIntervalChanged) ? volumeData : getVolumeData(ohlcv);
+            volumeDataTable = getDataToDataTable(volumeData);
+            volumeChart = createVolumeChart('volume_chart_div');
+
             var startDate = candlestickData[candlestickData.length - 51][0];
             var endDate = candlestickData[candlestickData.length - 1][0];
-            var filterSlider = createFilterSlider('filter_slider_div', startDate, endDate, 0);
-            setFilterSliderState(filterSlider, startDate, endDate)
-            addFilterSliderEventListener(filterSlider, candlestickChart, candlestickData);
+            filterSlider = createFilterSlider('filter_slider_div', startDate, endDate, 0);
+            setFilterSliderState(filterSlider, startDate, endDate);
 
-            // set chart range and title
+            addFilterSliderEventListener(filterSlider, candlestickChart, candlestickData);
             setChartYRange(candlestickData, candlestickChart, startDate, endDate);
             setChartTitle(candlestickChart, formatChartDate(startDate) + ' - ' + formatChartDate(endDate));
 
-            // set dashboard element and bind charting and controls
-            var dashboard = createDashboard('dashboard_div')
+            dashboard = createDashboard('dashboard_div');
             dashboard.bind(filterSlider, [candlestickChart, volumeChart]);
             dashboard.draw(candlestickDataTable);
-        }</script>
+            isTickerOrIntervalChanged = false;
+        }
+
+        function buildParams(indicator, unit, deviation, atrMultiplier) {
+            return {
+                indicator: indicator || null,
+                unit: unit || null,
+                deviation: deviation || null,
+                atrMultiplier: atrMultiplier || null
+            }
+        }
+
+        function clearDashboard() {
+            dashboard = null;
+            candlestickChart = null;
+            candlestickDataTable = null;
+            volumeChart = null;
+            volumeData = null;
+            volumeDataTable = null;
+            filterSlider = null;
+        }
+    </script>
 </body>
 </html>

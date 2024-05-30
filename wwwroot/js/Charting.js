@@ -1,5 +1,7 @@
 ﻿(function () {
 
+    var filterSliderListener;
+
     function getCandlestickData(ohlcv) {
         var candlestickData = [[{ type: 'date', label: 'Date' }, 'Low', 'Open', 'Close', 'High']];
         ohlcv.forEach(i => {
@@ -30,21 +32,62 @@
         return new google.visualization.Dashboard(document.getElementById(containerId));
     }
 
-    function createCandlestickChart(containerId) {
+    function createCandlestickChart(containerId, data) {
+
+        var options = {
+            legend: 'none',
+            titleTextStyle: {
+            //96c5c5 - make the open high low close text ths color
+                color: '#d6a87b'
+            },
+            bar: { groupWidth: '85%' },
+            colors: ['white'],
+            candlestick: {
+                fallingColor: { strokeWidth: 0.5, stroke: 'darkred', fill: 'red' },
+                risingColor: { strokeWidth: 0.5, stroke: 'darkgreen', fill: 'green' }
+            },
+            backgroundColor: 'black',
+            hAxis: {
+                gridlines: {
+                    color: '#284848'
+                },
+                textStyle: {
+                    color: '#d7d7b7' 
+                }
+            },
+            vAxis: {
+                gridlines: {
+                    color: '#17202A'
+                },
+                textStyle: {
+                    color: '#d7d7b7' 
+                }
+            },
+        };
+
+        // TODO: Fix series issue now that i am trying to add a fill
+        options.series = {};
+        options.series[1] = {
+            type: 'area', color: 'lightblue', lineWidth: 0, visibleInLegend: false
+        }
+
+        if (data[0].length > 5) {
+            var indicatorHeaders = data[0].slice(5);
+            for (var i = 0; i < indicatorHeaders.length; i++) {
+                var color = setIndicatorColor(indicatorHeaders[i]);
+                options.series[i+2] = {
+                    type: 'line',
+                    color: color
+                }
+            }
+        }
+
         return new google.visualization.ChartWrapper({
             chartType: 'CandlestickChart',
             containerId: containerId,
             colors: ['black'],
-            options: {
-                legend: 'none',
-                bar: { groupWidth: '85%' },
-                candlestick: {
-                    fallingColor: { strokeWidth: 0.5, stroke: 'darkred', fill: 'red' },
-                    risingColor: { strokeWidth: 0.5, stroke: 'darkgreen', fill: 'green' }
-                },
-                backgroundColor: 'white',
-            },
-        });
+            options: options
+        });        
     }
 
     function createFilterSlider(containerId, startDate, endDate, filterColumnIndex) {
@@ -93,7 +136,12 @@
     }
 
     function addFilterSliderEventListener(filterSlider, chart, chartData) {
-        google.visualization.events.addListener(filterSlider, 'statechange', debounce(function () {
+
+        if (filterSliderListener) {
+            google.visualization.events.removeListener(filterSliderListener);
+        }
+
+        filterSliderListener = google.visualization.events.addListener(filterSlider, 'statechange', debounce(function () {
             var state = filterSlider.getState();
             setChartTitle(chart, formatChartDate(state.range.start) + ' - ' + formatChartDate(state.range.end));
             setChartYRange(chartData, chart, state.range.start, state.range.end);
@@ -106,7 +154,7 @@
         var max = Number.MIN_VALUE;
 
         chartData.forEach(function (entry) {
-            var date = entry[0]; // Assuming date is at index 0
+            var date = entry[0];
             if (date >= startDate && date <= endDate) {
                 if (entry[1] != 0) {
                     min = Math.min(min, entry[1]);
@@ -115,8 +163,8 @@
             }
         });
 
-        chart.setOption('vAxis.viewWindow.min', min * 0.95);
-        chart.setOption('vAxis.viewWindow.max', max * 1.05);
+        chart.setOption('vAxis.viewWindow.min', min * 0.80);
+        chart.setOption('vAxis.viewWindow.max', max * 1.20);
     }
 
     function setChartTitle(chart, title) {
@@ -139,6 +187,19 @@
             clearTimeout(timeout);
             timeout = setTimeout(later, wait);
         };
+    }
+
+    function setIndicatorColor(indicatorHeader) {
+
+        if (indicatorHeader.includes("BB")) {
+            return "blue"; 
+        } else if (indicatorHeader.includes("KC")) {
+            return "black"; 
+        } else if (indicatorHeader.includes("SMA")) {
+            return "yellow"; 
+        } else {
+            return "red"; 
+        }
     }
 
     // Attach functions to the global window object

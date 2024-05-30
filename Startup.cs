@@ -77,7 +77,7 @@ namespace TrendyChange
             {
                 app.UseExceptionHandler("/Home/Error");
             }
-            app.UseWebOptimizer();
+            //app.UseWebOptimizer();
             app.UseStaticFiles();
 
             context.Database.Migrate();

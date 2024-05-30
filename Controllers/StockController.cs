@@ -2,6 +2,7 @@
 using System.Net.Http;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
+using TrendyChange.Models;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
@@ -57,6 +58,43 @@ namespace TrendyChange.Controllers
             {
                 return StatusCode(500, $"Internal server error: {e.Message}");
             }
+        }
+
+        [HttpGet]
+        public IActionResult GetIndicatorFieldParams(string indicatorType)
+        {
+            var indicatorParams = new IndicatorParamDefinitions();
+            List<string> fieldParams;
+
+            switch (indicatorType)
+            {
+                case "Bollinger Bands":
+                    fieldParams = indicatorParams.BollingerBandFieldParams();
+                    break;
+                case "Simple Moving Average":
+                    fieldParams = indicatorParams.SimpleMovingAverageFieldParams();
+                    break;
+                case "Keltner Channels":
+                    fieldParams = indicatorParams.KeltnerChannelsFieldParams();
+                    break;
+                default:
+                    fieldParams = new List<string>();
+                    break;
+            }
+
+            return Json(fieldParams);
+        }
+
+        public IActionResult GetAllIndicatorTypes()
+        {
+            var indicatorTypes = new List<string>
+            {
+                "Bollinger Bands",
+                "Simple Moving Average",
+                "Keltner Channels"
+            };
+
+            return Json(indicatorTypes);
         }
     }
 }
