@@ -9,7 +9,21 @@
     <title>Stock Chart</title>
 </head>
 <body>
+
+    <div class="button-bar">
+        <button type="button" class="btn btn-primary btn-sm" id="mostActive">Most Active</button>
+        <button type="button" class="btn btn-primary btn-sm" id="mostWatched">Most Watched</button>
+        <button type="button" class="btn btn-primary btn-sm" id="dayGainers">Day Gainers</button>
+        <button type="button" class="btn btn-primary btn-sm" id="dayLosers">Day Losers</button>
+        <button type="button" class="btn btn-primary btn-sm" id="undervaluedGrowth">Undervalued Growth</button>
+        <button type="button" class="btn btn-primary btn-sm" id="growthTechnology">Technology Growth</button>
+        <button type="button" class="btn btn-primary btn-sm" id="smallCapGainers">Small Cap Gainers</button>
+        <button type="button" class="btn btn-primary btn-sm" id="aggressiveSmallCap">Aggressive Small Cap</button>
+
+    </div>
+
     <h1 id="page_title">Stock Chart</h1>
+
     <div>
         <span>
             <div>
@@ -31,7 +45,7 @@
                 </select>
             </div>
             <div>
-                <button type="button" class="btn btn-primary" id="openIndicatorPopup">Add Indicator</button>
+                <button type="button" class="btn btn-primary" id="openIndicatorPopup">Apply Indicator</button>
             </div>
 
             <div id="indicatorPopup" class="modal fade" tabindex="-1" role="dialog">
@@ -39,26 +53,23 @@
             </div>
         </span>
     </div>
-    <div id="dashboard_div" style="width: 100%; height: 800px;">
-        <div id="candlestick_chart_div" style="width: 100%; height: 600px;"></div>
-        <div id="volume_chart_div" style="width: 100%; height: 100px;"></div>
-        <div id="filter_slider_div" style="width: 100%; height: 100px;"></div>
+    <div style="display: flex;">
+            <div id="dashboard_div" style="width: 90%; height: 800px;">
+                <div id="candlestick_chart_div" style="width: 100%; height: 600px;"></div>
+                <div id="volume_chart_div" style="width: 100%; height: 100px;"></div>
+                <div id="filter_slider_div" style="width: 100%; height: 100px;"></div>
+            </div>
+            <div id="sessionIndicatorsList" style="width: 10%; margin-left: 5px;">
+                <h4>Session Indicators</h4>
+                <p id="indicatorStatus">No indicators have been added</p>
+                <!-- Checkboxes for session indicators will be dynamically added here -->
+            </div>
     </div>
-    <script>
+    <script>// TODO: Vertical and horizontal line charting, showing/hiding indicators, removing indicators, loading animation, apply oscilator type charts to dashboard
         google.charts.load('current', { packages: ['corechart', 'controls'] });
         google.charts.setOnLoadCallback(getChartData);
-        var ticker;
-        var interval;
-        var dashboard;
-        var candlestickChart;
-        var candlestickData;
-        var ohlcv;
-        var candlestickDataTable;
-        var volumeChart;
-        var volumeData;
-        var volumeDataTable;
-        var filterSlider;
-        var isTickerOrIntervalChanged;
+        var ticker, interval, ohlcv, dashboard, candlestickChart, candlestickData, candlestickDataTable, aggregateDataTable,
+        volumeChart, volumeData, volumeDataTable, filterSlider, isTickerOrIntervalChanged,sessionIndicators = [];
 
         function getChartData() {
 
@@ -76,12 +87,15 @@
                 .catch(error => console.error('Error fetching data:', error));
         }
 
-        function renderChart(data) {         
+        function renderChart(data) {
             ohlcv = data.ohlcv;
             redrawDashboard(ohlcv);
         }
 
         $(document).ready(function () {
+
+            fetchTickerList("most_actives");
+
             // Fetch all indicators available for dropdown selection
             $.getJSON('/Stock/GetAllIndicatorTypes', function (indicatorTypes) {
                 indicatorTypes.forEach(indicator => {
@@ -111,29 +125,95 @@
             });
 
             $('#applySettings').click(function () {
-                var params = buildParams(
-                    $('#indicatorType').val(),
-                    $('#unit').val(),
-                    $('#deviation').val(),
-                    $('#atrMultiplier').val(),
-                );
-                candlestickData = applyIndicator(candlestickData, params.indicator, params);
-                redrawDashboard(ohlcv);
+                var params = buildParams($('#indicatorType').val(), $('#unit').val(), $('#deviation').val(), $('#atrMultiplier').val());
+                var indicatorColumnDefinitions = getIndicatorColumnDefinition(params);
+                if (!checkColumnNameExists(aggregateDataTable, indicatorColumnDefinitions)) {
+
+                    var closeData = candlestickData.map(p => p[3]);
+                    indicatorColumnDefinitions.forEach(definition => {
+                        var indicatorData = getIndicatorData(candlestickData, closeData, definition);
+                        candlestickDataTable = addDataColumn(candlestickDataTable, aggregateDataTable, definition, indicatorData);
+                        appendSessionIndicator(definition);
+                    });
+
+                    var seriesOptions = setSeriesOptionsToChart(candlestickDataTable);
+                    candlestickChart.setOption('series', seriesOptions);
+                    dashboard.draw(candlestickDataTable);
+                }
                 $('#indicatorPopup').modal('hide');
             });
 
             $('#closePopup').click(function () {
                 $('#indicatorPopup').modal('hide');
             });
+
+            $('#mostWatched').click(function () {
+                fetchTickerList('Most Watched');
+            });
+
+            $('#dayGainers').click(function () {
+                fetchTickerList('day_gainers');
+            });
+
+            $('#dayLosers').click(function () {
+                fetchTickerList('day_losers');
+            });
+
+            $('#undervaluedGrowth').click(function () {
+                fetchTickerList('undervalued_growth_stocks');
+            });
+
+            $('#aggressiveSmallCap').click(function () {
+                fetchTickerList('aggressive_small_caps');
+            });
+
+            $('#mostActive').click(function () {
+                fetchTickerList('most_actives');
+            });
+
+            $('#growthTechnology').click(function () {
+                fetchTickerList('growth_technology_stocks');
+            });
+
+            $('#smallCapGainers').click(function () {
+                fetchTickerList('small_cap_gainers');
+            });
         });
 
-        function redrawDashboard(ohlcv) {
+        function fetchTickerList(collection) {
 
+            clearDashboard();
+
+            fetch(`/Stock/GetTickerList?collection=${collection}`)
+                .then(response => response.json())
+                .then(symbols => {
+                    updateTickerDropdown(symbols);
+                    getChartData();
+                })
+                .catch(error => console.error('Error fetching ticker list:', error));
+        }
+
+        function updateTickerDropdown(tickers) {
+            var tickerDropdown = $('#ticker');
+            tickerDropdown.empty();
+            tickers.forEach(ticker => {
+                tickerDropdown.append($('<option>', {
+                    value: ticker,
+                    text: ticker
+                }));
+            });
+        }
+
+        function redrawDashboard(ohlcv) {
+            // TODO: make this function just an initializer for the dashboard. all other updates will come with interfacung with datatable data
             clearDashboard();
 
             candlestickData = (candlestickData && !isTickerOrIntervalChanged) ? candlestickData : getCandlestickData(ohlcv);
             candlestickDataTable = getDataToDataTable(candlestickData);
-            candlestickChart = createCandlestickChart("candlestick_chart_div", candlestickData);
+            aggregateDataTable = getDataToDataTable(candlestickData);
+            candlestickChart = createCandlestickChart("candlestick_chart_div");
+            var seriesOptions = setSeriesOptionsToChart(candlestickDataTable);
+            candlestickChart.setOption('series', seriesOptions);
 
             volumeData = (volumeData && !isTickerOrIntervalChanged) ? volumeData : getVolumeData(ohlcv);
             volumeDataTable = getDataToDataTable(volumeData);
@@ -154,6 +234,37 @@
             isTickerOrIntervalChanged = false;
         }
 
+        function appendSessionIndicator(indicatorDefinition) {
+            var indicatorStatus = document.getElementById('indicatorStatus').textContent = '';
+            sessionIndicators.push(indicatorDefinition);
+            var sessionIndicatorsList = $('#sessionIndicatorsList');
+            var checkbox = $('<input>', {
+                type: 'checkbox',
+                id: indicatorDefinition,
+                value: indicatorDefinition,
+                checked: true,
+            });
+
+            var label = $('<label>', {
+                for: indicatorDefinition,
+                text: indicatorDefinition,
+            });
+
+            sessionIndicatorsList.append(checkbox, label, '<br>');
+            checkbox.change(function () {
+                var columnName = this.id;
+                if (!this.checked) {
+                    candlestickDataTable = removeDataColumn(candlestickDataTable, columnName);
+                } else {
+                    candlestickDataTable = reAddDataColumn(candlestickDataTable, aggregateDataTable, columnName);
+                }
+
+                var seriesOptions = setSeriesOptionsToChart(candlestickDataTable);
+                candlestickChart.setOption('series', seriesOptions);
+                dashboard.draw(candlestickDataTable);
+            });
+        }
+
         function buildParams(indicator, unit, deviation, atrMultiplier) {
             return {
                 indicator: indicator || null,
@@ -167,11 +278,11 @@
             dashboard = null;
             candlestickChart = null;
             candlestickDataTable = null;
+            aggregateDataTable = null;
             volumeChart = null;
             volumeData = null;
             volumeDataTable = null;
             filterSlider = null;
-        }
-    </script>
+        }</script>
 </body>
 </html>

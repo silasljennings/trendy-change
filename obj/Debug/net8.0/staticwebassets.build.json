@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "gt6jzK2lilrEP9GQThG0z5Er10emAJTpd61aJg04hJ8=",
+  "Hash": "EW+xGAIRxsBGMXecY6GuLbXoZ8A4kcGjQH221M/5uZM=",
   "Source": "TrendyChange",
   "BasePath": "_content/TrendyChange",
   "Mode": "Default",
@@ -110,6 +110,25 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot/favicon.ico"
+    },
+    {
+      "Identity": "/Users/silasljennings/Documents/projects/trendy-change/wwwroot/js/Data.js",
+      "SourceId": "TrendyChange",
+      "SourceType": "Discovered",
+      "ContentRoot": "/Users/silasljennings/Documents/projects/trendy-change/wwwroot/",
+      "BasePath": "_content/TrendyChange",
+      "RelativePath": "js/Data.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot/js/Data.js"
     },
     {
       "Identity": "/Users/silasljennings/Documents/projects/trendy-change/wwwroot/js/site.js",

@@ -21,6 +21,14 @@ namespace TrendyChange.Models
             };
         }
 
+        public List<string> ExponentialMovingAverage()
+        {
+            return new List<string>
+            {
+                CreateField("Unit", "number", "unit", "form-control")
+            };
+        }
+
         public List<string> KeltnerChannelsFieldParams()
         {
             return new List<string>

@@ -2,37 +2,12 @@
 
     var filterSliderListener;
 
-    function getCandlestickData(ohlcv) {
-        var candlestickData = [[{ type: 'date', label: 'Date' }, 'Low', 'Open', 'Close', 'High']];
-        ohlcv.forEach(i => {
-            candlestickData.push([
-                new Date(i.date_utc * 1000),
-                i.low,
-                i.open,
-                i.close,
-                i.high
-            ]);
-        });
-        return candlestickData;
-    }
-
-    function getVolumeData(ohlcv) {
-        var volumeData = [['Date', 'Volume']];
-        ohlcv.forEach(i => {
-            volumeData.push([new Date(i.date_utc * 1000), i.volume]);
-        });
-        return volumeData;
-    }
-
-    function getDataToDataTable(data) {
-        return google.visualization.arrayToDataTable(data);
-    }
-
     function createDashboard(containerId) {
         return new google.visualization.Dashboard(document.getElementById(containerId));
     }
 
-    function createCandlestickChart(containerId, data) {
+
+    function createCandlestickChart(containerId) {
 
         var options = {
             legend: 'none',
@@ -65,28 +40,13 @@
             },
         };
 
-        // TODO: Fix series issue now that i am trying to add a fill
-        options.series = {};
-        options.series[1] = {
-            type: 'area', color: 'lightblue', lineWidth: 0, visibleInLegend: false
-        }
-
-        if (data[0].length > 5) {
-            var indicatorHeaders = data[0].slice(5);
-            for (var i = 0; i < indicatorHeaders.length; i++) {
-                var color = setIndicatorColor(indicatorHeaders[i]);
-                options.series[i+2] = {
-                    type: 'line',
-                    color: color
-                }
-            }
-        }
+        
 
         return new google.visualization.ChartWrapper({
             chartType: 'CandlestickChart',
             containerId: containerId,
             colors: ['black'],
-            options: options
+            options, options
         });        
     }
 
@@ -189,23 +149,48 @@
         };
     }
 
+
+    function setSeriesOptionsToChart(dataTable) {
+
+        var seriesOptions = {};
+        var seriesNumber = 1;
+
+        for (var i = 0; i < dataTable.getNumberOfColumns(); i++) {
+            var columnLabel = dataTable.getColumnLabel(i);
+            var color = setIndicatorColor(columnLabel);
+            if (columnLabel.includes("SMA") || columnLabel.includes("EMA")) {
+                seriesOptions[seriesNumber] = {
+                    type: 'area', color: color, areaOpacity: 0.20, lineWidth: 0.5, visibleInLegend: false
+                };
+                seriesNumber++;
+            }
+
+            if (!columnLabel.includes("SMA") && !columnLabel.includes("EMA") && columnLabel.includes('-')) {
+                seriesOptions[seriesNumber] = {
+                    type: 'line', color: color
+                };
+                seriesNumber++;
+            }
+        }
+        return seriesOptions;
+    }
+
     function setIndicatorColor(indicatorHeader) {
 
         if (indicatorHeader.includes("BB")) {
-            return "blue"; 
+            return "cbc8ee";
         } else if (indicatorHeader.includes("KC")) {
-            return "black"; 
+            return "eeeec8";
         } else if (indicatorHeader.includes("SMA")) {
-            return "yellow"; 
+            return "#dcb58e";
+        } else if (indicatorHeader.includes("EMA")) {
+            return "#a1e2e2";
         } else {
-            return "red"; 
+            return "red";
         }
     }
 
-    // Attach functions to the global window object
-    window.getCandlestickData = getCandlestickData;
-    window.getVolumeData = getVolumeData;
-    window.getDataToDataTable = getDataToDataTable;
+  
     window.createDashboard = createDashboard;
     window.createCandlestickChart = createCandlestickChart;
     window.createFilterSlider = createFilterSlider;
@@ -216,4 +201,5 @@
     window.setChartTitle = setChartTitle;
     window.formatChartDate = formatChartDate;
     window.debounce = debounce;
+    window.setSeriesOptionsToChart = setSeriesOptionsToChart;
 })();

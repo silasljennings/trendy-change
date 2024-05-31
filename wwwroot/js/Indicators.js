@@ -1,40 +1,48 @@
 ﻿(function () {
 
-    function bollingerBand(data, unit, deviation, type){
-        var sma = simpleMovingAverage(data, unit)
-        var sd = movingStandardDeviation(data, unit)
+    function bollingerBand(data, columnDefinition) {
+        var params = columnDefinition.split("-");
+        var deviation = parseFloat(params[1]).toPrecision(3);
+        var unit = parseInt(params[2]);
+        var sma = simpleMovingAverage(data, "SMA-" + unit);
+        var sd = movingStandardDeviation(data, "MSD-" + unit);
 
-        if (type === "upper") {
+        if (columnDefinition.includes("BBU")) {
             return sma.map((value, index) => value + (sd[index] * deviation));
         }
 
-        if (type === "lower") {
+        if (columnDefinition.includes("BBL")) {
             return sma.map((value, index) => value - (sd[index] * deviation));
         }
 
         throw new Error("Invalid type. Use 'upper' or 'lower'.");
     }
 
-    function keltnerChannel(data, unit, atrMultiplier, type) {
-        const ema = exponentialMovingAverage(data, unit);
-        const atr = averageTrueRange(data.map(i => ({ high: i[3], low: i[2], close: i[4] })), unit);
+    function keltnerChannel(data, closeData, columnDefinition) {
+        var params = columnDefinition.split("-");
+        var atrMultiplier = parseFloat(params[1]).toPrecision(3);
+        var unit = parseInt(params[2]);
+        const ema = exponentialMovingAverage(closeData, "EMA-" + unit);
+        const atr = averageTrueRange(data.map(i => ({ high: i[3], low: i[2], close: i[4] })), "ATR-" + unit);
 
-        if (type === "middle") {
+        if (columnDefinition.includes("KCM")) {
             return ema;
         }
 
-        if (type === "upper") {
+        if (columnDefinition.includes("KCU")) {
             return ema.map((value, index) => value + (atr[index] * atrMultiplier));
         }
 
-        if (type === "lower") {
+        if (columnDefinition.includes("KCL")) {
             return ema.map((value, index) => value - (atr[index] * atrMultiplier));
         }
 
         throw new Error("Invalid type. Use 'upper' or 'lower'.");
     }
 
-    function simpleMovingAverage(data, unit){
+    function simpleMovingAverage(data, columnDefinition) {
+        var params = columnDefinition.split("-");
+        var unit = parseInt(params[1]);
         var sma = [];
 
         for (let i = 0; i <= data.length - unit; i++) {
@@ -48,10 +56,11 @@
         return sma;
     }
 
-    function exponentialMovingAverage(data, unit) {
-        emaArray = [];
-        var closeData = data.map(i => i[7]);
-        closeData.shift() // remove the headers
+    function exponentialMovingAverage(closeData, columnDefinition) {
+        var params = columnDefinition.split("-");
+        var unit = parseInt(params[1]);
+        var emaArray = [];
+
         emaArray.push(closeData[0]);
         var k = (2 / (parseInt(unit) + 1)).toFixed(3);
         for (var i = 1; i < closeData.length; i++) {
@@ -61,10 +70,11 @@
         return emaArray;
     }
 
-    function averageTrueRange(ohlc, unit) {
+    function averageTrueRange(ohlc, columnDefinition) {
+        var params = columnDefinition.split("-");
+        var unit = parseInt(params[1]);
         let atr = [];
         let trueRanges = [];
-        ohlc.shift(); // remove the headers
 
         for (let i = 1; i < ohlc.length; i++) {
             let high = ohlc[i].high;
@@ -88,9 +98,11 @@
         return atr;
     }
 
-    function movingStandardDeviation(data, unit) {
+    function movingStandardDeviation(data, columnDefinition) {
+        var params = columnDefinition.split("-");
+        var unit = parseInt(params[1]);
         var sd = [];
-        var sma = simpleMovingAverage(data, unit);
+        var sma = simpleMovingAverage(data, "SMA-" + unit);
 
         for (let i = 0; i <= data.length - unit; i++) {
             let sum = 0;
@@ -103,14 +115,7 @@
         return sd;
     }
 
-    function standardDeviation(data) {
-        var mean = data.reduce((a, b) => a + b, 0) / data.length;
-        var sqDiff = data.map(n => Math.pow(n - mean, 2));
-        var avgSqDiff = sqDiff.reduce((a, b) => a + b, 0) / sqDiff.length;
-        return Math.sqrt(avgSqDiff);
-    }
-
-    function applyIndicatorData(data, indicatorData) {
+    function calculateIndicatorData(data, indicatorData) {
         var reversedData = data.slice().reverse();
         var reversedIndicatorData = indicatorData.slice().reverse();
 
@@ -120,50 +125,65 @@
         }).reverse();
     }
 
-    function applyIndicator(data, indicator, params) {
-        switch (indicator) {
-            case "Bollinger Bands":
-                var closeData = data.map(i => i[3]);
-                var upperBand = bollingerBand(closeData, params.unit, params.deviation, "upper");
-                var lowerBand = bollingerBand(closeData, params.unit, params.deviation, "lower");
-                data = applyIndicatorData(data, upperBand);
-                data = applyIndicatorData(data, lowerBand);
-                data[0][data[0].length - 2] = "BBU-" + params.unit + '-' + params.deviation;
-                data[0][data[0].length - 1] = "BBL-" + params.unit + '-' + params.deviation;
-                return data;
+    function getIndicatorData(data, closeData, columnDefinition) {
+        var dataHeader = data.shift();
+        var closeDataHeader = closeData.shift();
 
-            case "Simple Moving Average":
-                var closeData = data.map(i => i[3]);
-                var sma = simpleMovingAverage(closeData, params.unit);
-                data = applyIndicatorData(data, sma);
-                data[0][data[0].length - 1] = "SMA-" + params.unit;
-                return data;
+        if (columnDefinition.includes("BB")) {
+            data = calculateIndicatorData(data, bollingerBand(closeData, columnDefinition));
+        }
+        else if (columnDefinition.includes("KC")) {
+            data = calculateIndicatorData(data, keltnerChannel(data, closeData, columnDefinition));
+        }
+        else if (columnDefinition.includes("SMA")) {
+            data = calculateIndicatorData(data, simpleMovingAverage(closeData, columnDefinition));
+        }
+        else if (columnDefinition.includes("EMA")) {
+            data = calculateIndicatorData(data, exponentialMovingAverage(closeData, columnDefinition));
+        } else {
+            data = data;
+        }
+
+        var indicatorData = data.map(row => row[row.length - 1]);
+        return indicatorData;
+    }
+
+    function getIndicatorColumnDefinition(params) {
+        switch (params.indicator) {
+            case "Bollinger Bands":
+                var paramString = params.deviation + '-' + params.unit;
+                return [
+                    "BBU-" + paramString,
+                    "BBL-" + paramString
+                ];
 
             case "Keltner Channels":
-                var closeData = data.map(i => i[3]);
-                var middleChannel = keltnerChannel(data, params.unit, params.atrMultiplier, "middle");
-                var upperChannel = keltnerChannel(data, params.unit, params.atrMultiplier, "upper");
-                var lowerChannel = keltnerChannel(data, params.unit, params.atrMultiplier, "lower");
-                data = applyIndicatorData(data, middleChannel);
-                data = applyIndicatorData(data, upperChannel);
-                data = applyIndicatorData(data, lowerChannel);
-                data[0][data[0].length - 3] = "KCM-" + params.unit + "-" + params.atrMultiplier;
-                data[0][data[0].length - 2] = "KCU-" + params.unit + "-" + params.atrMultiplier;
-                data[0][data[0].length - 1] = "KCL-" + params.unit + "-" + params.atrMultiplier;
-                return data;
+                var paramString = params.atrMultiplier + "-" + params.unit;
+                return [
+                    "KCM-" + paramString,
+                    "KCU-" + paramString,
+                    "KCL-" + paramString
+                ];
+
+            case "Exponential Moving Average":
+                var paramString = params.unit;
+                return [
+                    "EMA-" + paramString
+                ];
+
+            case "Simple Moving Average":
+                var paramString = params.unit;
+                return [
+                    "SMA-" + paramString
+                ];
 
             default:
-                return data;
+                return [];
         }
     }
 
-    window.bollingerBand = bollingerBand;
-    window.simpleMovingAverage = simpleMovingAverage;
-    window.averageTrueRange = averageTrueRange;
-    window.movingStandardDeviation = movingStandardDeviation;
-    window.standardDeviation = standardDeviation;
-    window.applyIndicatorData = applyIndicatorData;
-    window.applyIndicator = applyIndicator;
-    window.exponentialMovingAverage = exponentialMovingAverage;
-    window.averageTrueRange = averageTrueRange;
+    // Expose the functions to the global scope
+    window.getIndicatorData = getIndicatorData;
+    window.getIndicatorColumnDefinition = getIndicatorColumnDefinition;
+
 })();

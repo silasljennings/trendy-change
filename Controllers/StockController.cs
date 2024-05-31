@@ -2,11 +2,15 @@
 using System.Net.Http;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
+using TrendyChange.Models.ApiResponses;
 using TrendyChange.Models;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
-
+using static System.Net.WebRequestMethods;
+using System.Reflection.Metadata;
+using System.Text.Json;
+using TrendyChange.Routes;
 
 namespace TrendyChange.Controllers
 {
@@ -25,12 +29,60 @@ namespace TrendyChange.Controllers
             // List of stock tickers (you can fetch this from your database or any other source)
             var ViewModel = new StockViewModel
             {
-                Tickers = new List<string> { "AAPL", "MSFT", "GOOGL" },
+                Tickers = new List<string> {},
                 Intervals = new List<string> {"1d", "1wk", "1mo", "3mo" }
             };
             //"1m", "5m", "15m", "30m", "1h",
 
             return View(ViewModel);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetTickerList(string collection)
+        {
+            try
+            {
+
+                List<string> symbols;
+                if (collection == "Most Watched")
+                {
+                    var url = $"https://mboum.com/api/v1/tr/trending?apikey=wncZL7dt7SWkcbJGvzo5DQTzfV6yHqUffOBjYIQhmvvPv8R6cqDieWOKuJW6";
+                    var apiResponse = await _httpClient.GetStringAsync(url);
+
+                    if (apiResponse == null)
+                    {
+                        return NotFound("Data not found");
+                    }
+
+                    using (JsonDocument document = JsonDocument.Parse(apiResponse))
+                    {
+                        JsonElement root = document.RootElement;
+                        JsonElement quotes = root.GetProperty("data")[0].GetProperty("quotes");
+                        symbols = new List<string>();
+                        foreach (JsonElement symbol in quotes.EnumerateArray())
+                        {
+                            symbols.Add(symbol.GetString());
+                        }
+                    }
+
+                    return new JsonResult(symbols);
+
+                } else {
+                    var url = $"https://mboum.com/api/v1/co/collections/?list={collection}&start=1&apikey=wncZL7dt7SWkcbJGvzo5DQTzfV6yHqUffOBjYIQhmvvPv8R6cqDieWOKuJW6";
+                    var apiResponse = await _httpClient.GetFromJsonAsync<CollectionApiResponse>(url);
+
+                    if (apiResponse == null || apiResponse.Data == null)
+                    {
+                        return NotFound("Data not found");
+                    }
+                    symbols = apiResponse.Data.Quotes?.Select(q => q.Symbol).ToList();
+                    return new JsonResult(symbols);
+                }
+            }
+            catch (HttpRequestException e)
+            {
+                return StatusCode(500, $"Internal server error: {e.Message}");
+            }
         }
 
         [HttpGet]
@@ -41,15 +93,15 @@ namespace TrendyChange.Controllers
             try
             {
                 var apiResponse = await _httpClient.GetFromJsonAsync<HistoricalDataApiResponse>(url);
-                if (apiResponse == null || apiResponse.HistoricalData == null || !apiResponse.HistoricalData.Any())
+                if (apiResponse == null || apiResponse.Data == null || !apiResponse.Data.Any())
                 {
                     return NotFound("Data not found");
                 }
 
                 var result = new
                 {
-                    meta = apiResponse.HistoricalMeta,
-                    ohlcv = apiResponse.HistoricalData.Values.ToList()
+                    meta = apiResponse.Meta,
+                    ohlcv = apiResponse.Data.Values.ToList()
                 };
 
                 return new JsonResult(result);
@@ -74,6 +126,9 @@ namespace TrendyChange.Controllers
                 case "Simple Moving Average":
                     fieldParams = indicatorParams.SimpleMovingAverageFieldParams();
                     break;
+                case "Exponential Moving Average":
+                    fieldParams = indicatorParams.ExponentialMovingAverage();
+                    break;
                 case "Keltner Channels":
                     fieldParams = indicatorParams.KeltnerChannelsFieldParams();
                     break;
@@ -91,117 +146,13 @@ namespace TrendyChange.Controllers
             {
                 "Bollinger Bands",
                 "Simple Moving Average",
+                "Exponential Moving Average",
                 "Keltner Channels"
             };
 
             return Json(indicatorTypes);
         }
     }
-}
-
-public class HistoricalDataApiResponse
-{
-    [JsonPropertyName("data")]
-    public Dictionary<string, HistoricalDataPoint>? HistoricalData { get; set; }
-
-    [JsonPropertyName("meta")]
-    public HistoricalMetaData? HistoricalMeta { get; set; }
-}
-
-public class HistoricalMetaData
-{
-    [JsonPropertyName("copyright")]
-    public string? Copyright { get; set; }
-
-    [JsonPropertyName("data_status")]
-    public string? DataStatus { get; set; }
-
-    [JsonPropertyName("currency")]
-    public string? Currency { get; set; }
-
-    [JsonPropertyName("symbol")]
-    public string? Symbol { get; set; }
-
-    [JsonPropertyName("exchangeName")]
-    public string? ExchangeName { get; set; }
-
-    [JsonPropertyName("fullExchangeName")]
-    public string? FullExchangeName { get; set; }
-
-    [JsonPropertyName("instrumentType")]
-    public string? InstrumentType { get; set; }
-
-    [JsonPropertyName("firstTradeDate")]
-    public long? FirstTradeDate { get; set; }
-
-    [JsonPropertyName("regularMarketTime")]
-    public long? RegularMarketTime { get; set; }
-
-    [JsonPropertyName("hasPrePostMarketData")]
-    public bool? HasPrePostMarketData { get; set; }
-
-    [JsonPropertyName("gmtoffset")]
-    public int? GmtOffset { get; set; }
-
-    [JsonPropertyName("timezone")]
-    public string? Timezone { get; set; }
-
-    [JsonPropertyName("exchangeTimezoneName")]
-    public string? ExchangeTimezoneName { get; set; }
-
-    [JsonPropertyName("regularMarketPrice")]
-    public double? RegularMarketPrice { get; set; }
-
-    [JsonPropertyName("fiftyTwoWeekHigh")]
-    public double? FiftyTwoWeekHigh { get; set; }
-
-    [JsonPropertyName("fiftyTwoWeekLow")]
-    public double? FiftyTwoWeekLow { get; set; }
-
-    [JsonPropertyName("regularMarketDayHigh")]
-    public double? RegularMarketDayHigh { get; set; }
-
-    [JsonPropertyName("regularMarketDayLow")]
-    public double? RegularMarketDayLow { get; set; }
-
-    [JsonPropertyName("regularMarketVolume")]
-    public long? RegularMarketVolume { get; set; }
-
-    [JsonPropertyName("chartPreviousClose")]
-    public double? ChartPreviousClose { get; set; }
-
-    [JsonPropertyName("priceHint")]
-    public int? PriceHint { get; set; }
-
-    [JsonPropertyName("dataGranularity")]
-    public string? DataGranularity { get; set; }
-
-    [JsonPropertyName("range")]
-    public string? Range { get; set; }
-}
-
-public class HistoricalDataPoint
-{
-    [JsonPropertyName("date")]
-    public string? Date { get; set; }
-
-    [JsonPropertyName("date_utc")]
-    public int? DateUtc { get; set; }
-
-    [JsonPropertyName("open")]
-    public double? Open { get; set; }
-
-    [JsonPropertyName("high")]
-    public double? High { get; set; }
-
-    [JsonPropertyName("low")]
-    public double? Low { get; set; }
-
-    [JsonPropertyName("close")]
-    public double? Close { get; set; }
-
-    [JsonPropertyName("volume")]
-    public int? Volume { get; set; }
 }
 
 public class StockViewModel

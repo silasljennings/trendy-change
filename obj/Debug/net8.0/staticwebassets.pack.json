@@ -17,6 +17,10 @@
       "PackagePath": "staticwebassets/favicon.ico"
     },
     {
+      "Id": "/Users/silasljennings/Documents/projects/trendy-change/wwwroot/js/Data.js",
+      "PackagePath": "staticwebassets/js/Data.js"
+    },
+    {
       "Id": "/Users/silasljennings/Documents/projects/trendy-change/wwwroot/js/site.js",
       "PackagePath": "staticwebassets/js/site.js"
     },
