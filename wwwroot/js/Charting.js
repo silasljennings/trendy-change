@@ -28,7 +28,7 @@
                 },
                 textStyle: {
                     color: '#d7d7b7' 
-                }
+                },
             },
             vAxis: {
                 gridlines: {
@@ -103,10 +103,14 @@
 
         filterSliderListener = google.visualization.events.addListener(filterSlider, 'statechange', debounce(function () {
             var state = filterSlider.getState();
+            var today = new Date();
+            var endOfRange = new Date(state.range.end);
+            var isAtEnd = endOfRange.toDateString() === today.toDateString();
             setChartTitle(chart, formatChartDate(state.range.start) + ' - ' + formatChartDate(state.range.end));
             setChartYRange(chartData, chart, state.range.start, state.range.end);
+            setChartXRange(isAtEnd, chart)
             chart.draw();
-        }, 300));
+        }, 50));
     }
 
     function setChartYRange(chartData, chart, startDate, endDate) {
@@ -125,6 +129,16 @@
 
         chart.setOption('vAxis.viewWindow.min', min * 0.80);
         chart.setOption('vAxis.viewWindow.max', max * 1.20);
+    }
+
+    function setChartXRange(isAtEnd, chart) {
+        if (isAtEnd) {
+            var currentDate = new Date(); // Get the current date
+            var futureDate = new Date(currentDate.getTime() + (50 * 24 * 60 * 60 * 1000)); // Add 50 days to the current date
+            chart.setOption('hAxis.viewWindow.max', futureDate); // Set the maximum value to the future date
+        } else {
+            chart.setOption('hAxis.viewWindow.max', null); // Unset the maximum value
+        }
     }
 
     function setChartTitle(chart, title) {
@@ -150,7 +164,7 @@
     }
 
 
-    function setSeriesOptionsToChart(dataTable) {
+    function getSeriesOptionsForChart(dataTable) {
 
         var seriesOptions = {};
         var seriesNumber = 1;
@@ -198,8 +212,8 @@
     window.createVolumeChart = createVolumeChart;
     window.addFilterSliderEventListener = addFilterSliderEventListener;
     window.setChartYRange = setChartYRange;
+    window.setChartXRange = setChartXRange;
     window.setChartTitle = setChartTitle;
     window.formatChartDate = formatChartDate;
-    window.debounce = debounce;
-    window.setSeriesOptionsToChart = setSeriesOptionsToChart;
+    window.getSeriesOptionsForChart = getSeriesOptionsForChart;
 })();

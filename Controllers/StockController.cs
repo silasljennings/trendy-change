@@ -43,7 +43,7 @@ namespace TrendyChange.Controllers
             try
             {
 
-                List<string> symbols;
+                List<string> symbols = new List<string>();
                 if (collection == "Most Watched")
                 {
                     var url = $"https://mboum.com/api/v1/tr/trending?apikey=wncZL7dt7SWkcbJGvzo5DQTzfV6yHqUffOBjYIQhmvvPv8R6cqDieWOKuJW6";
@@ -58,7 +58,7 @@ namespace TrendyChange.Controllers
                     {
                         JsonElement root = document.RootElement;
                         JsonElement quotes = root.GetProperty("data")[0].GetProperty("quotes");
-                        symbols = new List<string>();
+                   
                         foreach (JsonElement symbol in quotes.EnumerateArray())
                         {
                             symbols.Add(symbol.GetString());
@@ -102,6 +102,33 @@ namespace TrendyChange.Controllers
                 {
                     meta = apiResponse.Meta,
                     ohlcv = apiResponse.Data.Values.ToList()
+                };
+
+                return new JsonResult(result);
+            }
+            catch (HttpRequestException e)
+            {
+                return StatusCode(500, $"Internal server error: {e.Message}");
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetOptionsData(string ticker, string interval)
+        {
+            var url = $"https://mboum.com/api/v1/op/option/?symbol={ticker}&apikey=wncZL7dt7SWkcbJGvzo5DQTzfV6yHqUffOBjYIQhmvvPv8R6cqDieWOKuJW6";
+
+            try
+            {
+                var apiResponse = await _httpClient.GetFromJsonAsync<OptionsApiResponse>(url);
+                if (apiResponse == null || apiResponse.Data == null)
+                {
+                    return NotFound("Data not found");
+                }
+
+                var result = new
+                {
+                    meta = apiResponse.Meta,
+                    data = apiResponse.Data
                 };
 
                 return new JsonResult(result);

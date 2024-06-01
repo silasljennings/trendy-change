@@ -10,7 +10,7 @@
 </head>
 <body>
 
-    <div class="button-bar">
+    <div class="button-bar" style="margin-bottom: 20px;">
         <button type="button" class="btn btn-primary btn-sm" id="mostActive">Most Active</button>
         <button type="button" class="btn btn-primary btn-sm" id="mostWatched">Most Watched</button>
         <button type="button" class="btn btn-primary btn-sm" id="dayGainers">Day Gainers</button>
@@ -19,114 +19,102 @@
         <button type="button" class="btn btn-primary btn-sm" id="growthTechnology">Technology Growth</button>
         <button type="button" class="btn btn-primary btn-sm" id="smallCapGainers">Small Cap Gainers</button>
         <button type="button" class="btn btn-primary btn-sm" id="aggressiveSmallCap">Aggressive Small Cap</button>
-
     </div>
 
-    <h1 id="page_title">Stock Chart</h1>
+    <div style="display: flex; flex-direction: row; margin-bottom: 10px;">
+        <div style="margin: 10px;">
+            <label for="ticker">Select Stock Ticker:</label>
+            <select id="ticker" name="ticker" onchange="getChartData()">
+                @foreach (var ticker in Model.Tickers)
+                {
+                    <option value="@ticker">@ticker</option>
+                }
+            </select>
+        </div>
+        <div style="margin: 10px;">
+            <label for="interval">Select Time Interval:</label>
+            <select id="interval" name="interval" onchange="getChartData()">
+                @foreach (var interval in Model.Intervals)
+                {
+                    <option value="@interval">@interval</option>
+                }
+            </select>
+        </div>
+    </div>
 
     <div>
-        <span>
-            <div>
-                <label for="ticker">Select Stock Ticker:</label>
-                <select id="ticker" name="ticker" onchange="getChartData()">
-                    @foreach (var ticker in Model.Tickers)
-                    {
-                        <option value="@ticker">@ticker</option>
-                    }
-                </select>
-            </div>
-            <div>
-                <label for="interval">Select Time Interval:</label>
-                <select id="interval" name="interval" onchange="getChartData()">
-                    @foreach (var interval in Model.Intervals)
-                    {
-                        <option value="@interval">@interval</option>
-                    }
-                </select>
-            </div>
-            <div>
-                <button type="button" class="btn btn-primary" id="openIndicatorPopup">Apply Indicator</button>
-            </div>
+        <div style="margin: 10px;">
+            <h1 id="page_title">Stock Chart</h1>
+        </div>
 
-            <div id="indicatorPopup" class="modal fade" tabindex="-1" role="dialog">
-                @await Html.PartialAsync("IndicatorPopup")
-            </div>
-        </span>
+        <div style="display: flex; flex-direction: row;">
+            <label>
+                <input type="checkbox" id="candlesticks" name="candlesticks" value="candlesticks" checked>
+                Candlesticks
+            </label>
+            <label>
+                <input type="checkbox" id="strikePrices" name="strikePrices" value="strikePrices">
+                Strike Prices
+            </label>
+            <label>
+                <input type="checkbox" id="expirations" name="expirations" value="expirations">
+                Expirations
+            </label>
+        </div>
+
+        <div>
+            <button type="button" class="btn btn-primary btn-sm" id="openIndicatorPopup">Apply Indicator</button>
+        </div>
     </div>
+
+    <div id="indicatorPopup" class="modal fade" tabindex="-1" role="dialog">
+        @await Html.PartialAsync("IndicatorPopup")
+    </div>
+
     <div style="display: flex;">
-            <div id="dashboard_div" style="width: 90%; height: 800px;">
-                <div id="candlestick_chart_div" style="width: 100%; height: 600px;"></div>
-                <div id="volume_chart_div" style="width: 100%; height: 100px;"></div>
-                <div id="filter_slider_div" style="width: 100%; height: 100px;"></div>
-            </div>
-            <div id="sessionIndicatorsList" style="width: 10%; margin-left: 5px;">
-                <h4>Session Indicators</h4>
-                <p id="indicatorStatus">No indicators have been added</p>
-                <!-- Checkboxes for session indicators will be dynamically added here -->
-            </div>
+        <div id="dashboard_div" style="width: 85%; height: 700px;">
+            <div id="candlestick_chart_div" style="width: 100%; height: 550px;"></div>
+            <div id="volume_chart_div" style="width: 100%; height: 100px;"></div>
+            <div id="filter_slider_div" style="width: 100%; height: 50px;"></div>
+        </div>
+        <div id="sessionIndicatorsList" style="width: 15%; margin-left: 10px;">
+            <h4>Session Indicators</h4>
+            <p id="indicatorStatus">No indicators have been added</p>
+            <!-- Checkboxes for session indicators will be dynamically added here -->
+        </div>
     </div>
-    <script>// TODO: Vertical and horizontal line charting, showing/hiding indicators, removing indicators, loading animation, apply oscilator type charts to dashboard
+    <script>// TODO: Vertical and horizontal line charting, loading animation, apply oscilator type charts to dashboard, default to a 10 (default), 15, 30, 60, 90 extra time to see chart better 
         google.charts.load('current', { packages: ['corechart', 'controls'] });
         google.charts.setOnLoadCallback(getChartData);
         var ticker, interval, ohlcv, dashboard, candlestickChart, candlestickData, candlestickDataTable, aggregateDataTable,
-        volumeChart, volumeData, volumeDataTable, filterSlider, isTickerOrIntervalChanged,sessionIndicators = [];
+            volumeChart, volumeData, volumeDataTable, filterSlider, optionsData, sessionIndicators = [];
 
-        function getChartData() {
-
-            isTickerOrIntervalChanged = true;
+        async function getChartData() {
+            clearDashboard();
             ticker = document.getElementById('ticker').value;
             interval = document.getElementById('interval').value;
             document.getElementById('page_title').innerText = ticker;
-
-            // Call your controller method to get chart data for the selected ticker
-            fetch(`/Stock/GetChartData?ticker=${ticker}&interval=${interval}`)
-                .then(response => response.json())
-                .then(data => {
-                    renderChart(data);
-                })
-                .catch(error => console.error('Error fetching data:', error));
-        }
-
-        function renderChart(data) {
+            var data = await fetchData(`/Stock/GetChartData?ticker=${ticker}&interval=${interval}`);
             ohlcv = data.ohlcv;
-            redrawDashboard(ohlcv);
+            resetDashboard(ohlcv);
         }
 
         $(document).ready(function () {
 
-            fetchTickerList("most_actives");
+            updateTickerList("most_actives");
 
-            // Fetch all indicators available for dropdown selection
-            $.getJSON('/Stock/GetAllIndicatorTypes', function (indicatorTypes) {
-                indicatorTypes.forEach(indicator => {
-                    $('#indicatorType').append($('<option>', {
-                        value: indicator,
-                        text: indicator
-                    }));
-                });
-            });
+            fetchInidcatorList('/Stock/GetAllIndicatorTypes');
 
             $('#openIndicatorPopup').click(function () {
                 $('#indicatorPopup').modal('show');
             });
 
-            $('#indicatorType').change(function () {
-                var selectedIndicator = $(this).val();
-                var parameterFields = $('#parameterFields');
-                parameterFields.empty();
-
-                // Fetch parameter fields for the selected indicator
-                $.getJSON(`/Stock/GetIndicatorFieldParams?indicatorType=${selectedIndicator}`, function (fields) {
-                    fields.forEach(field => {
-                        parameterFields.append(field);
-                    });
-                });
-
+            $('#indicatorType').change(function () {               
+                var parameterFields = fetchIndicatorParams(`/Stock/GetIndicatorFieldParams?indicatorType=${$(this).val()}`);
             });
 
             $('#applySettings').click(function () {
-                var params = buildParams($('#indicatorType').val(), $('#unit').val(), $('#deviation').val(), $('#atrMultiplier').val());
-                var indicatorColumnDefinitions = getIndicatorColumnDefinition(params);
+                var indicatorColumnDefinitions = getIndicatorColumnDefinition();
                 if (!checkColumnNameExists(aggregateDataTable, indicatorColumnDefinitions)) {
 
                     var closeData = candlestickData.map(p => p[3]);
@@ -136,8 +124,7 @@
                         appendSessionIndicator(definition);
                     });
 
-                    var seriesOptions = setSeriesOptionsToChart(candlestickDataTable);
-                    candlestickChart.setOption('series', seriesOptions);
+                    candlestickChart.setOption('series', getSeriesOptionsForChart(candlestickDataTable));
                     dashboard.draw(candlestickDataTable);
                 }
                 $('#indicatorPopup').modal('hide');
@@ -148,52 +135,41 @@
             });
 
             $('#mostWatched').click(function () {
-                fetchTickerList('Most Watched');
+                updateTickerList('Most Watched');
             });
 
             $('#dayGainers').click(function () {
-                fetchTickerList('day_gainers');
+                updateTickerList('day_gainers');
             });
 
             $('#dayLosers').click(function () {
-                fetchTickerList('day_losers');
+                updateTickerList('day_losers');
             });
 
             $('#undervaluedGrowth').click(function () {
-                fetchTickerList('undervalued_growth_stocks');
+                updateTickerList('undervalued_growth_stocks');
             });
 
             $('#aggressiveSmallCap').click(function () {
-                fetchTickerList('aggressive_small_caps');
+                updateTickerList('aggressive_small_caps');
             });
 
             $('#mostActive').click(function () {
-                fetchTickerList('most_actives');
+                updateTickerList('most_actives');
             });
 
             $('#growthTechnology').click(function () {
-                fetchTickerList('growth_technology_stocks');
+                updateTickerList('growth_technology_stocks');
             });
 
             $('#smallCapGainers').click(function () {
-                fetchTickerList('small_cap_gainers');
+                updateTickerList('small_cap_gainers');
             });
         });
 
-        function fetchTickerList(collection) {
+        async function updateTickerList(collection) {
 
-            clearDashboard();
-
-            fetch(`/Stock/GetTickerList?collection=${collection}`)
-                .then(response => response.json())
-                .then(symbols => {
-                    updateTickerDropdown(symbols);
-                    getChartData();
-                })
-                .catch(error => console.error('Error fetching ticker list:', error));
-        }
-
-        function updateTickerDropdown(tickers) {
+            var tickers = await fetchData(`/Stock/GetTickerList?collection=${collection}`);
             var tickerDropdown = $('#ticker');
             tickerDropdown.empty();
             tickers.forEach(ticker => {
@@ -202,36 +178,36 @@
                     text: ticker
                 }));
             });
+
+            getChartData();
         }
 
-        function redrawDashboard(ohlcv) {
-            // TODO: make this function just an initializer for the dashboard. all other updates will come with interfacung with datatable data
-            clearDashboard();
+        function resetDashboard() {
+       
+            candlestickData = getCandlestickData(ohlcv);
+            var startDate = candlestickData[candlestickData.length - 51][0];
+            var endDate = candlestickData[candlestickData.length - 1][0];
 
-            candlestickData = (candlestickData && !isTickerOrIntervalChanged) ? candlestickData : getCandlestickData(ohlcv);
             candlestickDataTable = getDataToDataTable(candlestickData);
             aggregateDataTable = getDataToDataTable(candlestickData);
             candlestickChart = createCandlestickChart("candlestick_chart_div");
-            var seriesOptions = setSeriesOptionsToChart(candlestickDataTable);
-            candlestickChart.setOption('series', seriesOptions);
+            candlestickChart.setOption('series', getSeriesOptionsForChart(candlestickDataTable));
 
-            volumeData = (volumeData && !isTickerOrIntervalChanged) ? volumeData : getVolumeData(ohlcv);
+            volumeData = getVolumeData(ohlcv);
             volumeDataTable = getDataToDataTable(volumeData);
             volumeChart = createVolumeChart('volume_chart_div');
 
-            var startDate = candlestickData[candlestickData.length - 51][0];
-            var endDate = candlestickData[candlestickData.length - 1][0];
             filterSlider = createFilterSlider('filter_slider_div', startDate, endDate, 0);
             setFilterSliderState(filterSlider, startDate, endDate);
 
             addFilterSliderEventListener(filterSlider, candlestickChart, candlestickData);
             setChartYRange(candlestickData, candlestickChart, startDate, endDate);
+            setChartXRange(true, candlestickChart)
             setChartTitle(candlestickChart, formatChartDate(startDate) + ' - ' + formatChartDate(endDate));
 
             dashboard = createDashboard('dashboard_div');
             dashboard.bind(filterSlider, [candlestickChart, volumeChart]);
             dashboard.draw(candlestickDataTable);
-            isTickerOrIntervalChanged = false;
         }
 
         function appendSessionIndicator(indicatorDefinition) {
@@ -259,30 +235,14 @@
                     candlestickDataTable = reAddDataColumn(candlestickDataTable, aggregateDataTable, columnName);
                 }
 
-                var seriesOptions = setSeriesOptionsToChart(candlestickDataTable);
-                candlestickChart.setOption('series', seriesOptions);
+                candlestickChart.setOption('series', getSeriesOptionsForChart(candlestickDataTable));
                 dashboard.draw(candlestickDataTable);
             });
         }
 
-        function buildParams(indicator, unit, deviation, atrMultiplier) {
-            return {
-                indicator: indicator || null,
-                unit: unit || null,
-                deviation: deviation || null,
-                atrMultiplier: atrMultiplier || null
-            }
-        }
-
         function clearDashboard() {
-            dashboard = null;
-            candlestickChart = null;
-            candlestickDataTable = null;
-            aggregateDataTable = null;
-            volumeChart = null;
-            volumeData = null;
-            volumeDataTable = null;
-            filterSlider = null;
-        }</script>
+            dashboard = candlestickChart = candlestickDataTable = aggregateDataTable = volumeChart = volumeData = volumeDataTable = filterSlider = null;
+        }
+    </script>
 </body>
 </html>

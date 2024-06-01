@@ -148,7 +148,8 @@
         return indicatorData;
     }
 
-    function getIndicatorColumnDefinition(params) {
+    function getIndicatorColumnDefinition() {
+        var params = setIndicatorParams($('#indicatorType').val(), $('#unit').val(), $('#deviation').val(), $('#atrMultiplier').val());
         switch (params.indicator) {
             case "Bollinger Bands":
                 var paramString = params.deviation + '-' + params.unit;
@@ -182,8 +183,18 @@
         }
     }
 
+    function setIndicatorParams(indicator, unit, deviation, atrMultiplier) {
+        return {
+            indicator: indicator || null,
+            unit: unit || null,
+            deviation: deviation || null,
+            atrMultiplier: atrMultiplier || null
+        }
+    }
+
     // Expose the functions to the global scope
     window.getIndicatorData = getIndicatorData;
     window.getIndicatorColumnDefinition = getIndicatorColumnDefinition;
+    window.setIndicatorParams = setIndicatorParams;
 
 })();
